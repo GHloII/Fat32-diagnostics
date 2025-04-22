@@ -11,6 +11,10 @@
 		updateFatHelperTable();
 		findLostFiles(fatTable_);
 
+		curedFatTable_ = fatTable_;
+		curedFiles_ = files_;
+
+		HealCyclicFiles(cyclicFiles_, fatTable_, curedFatTable_, bs_);
 		printBrokenFiles();
 	}
 }
@@ -21,7 +25,7 @@
 	}
 }
 
-inline void Fat32::diskOpener() {
+ void Fat32::diskOpener() {
 	disk_.open(filename_, std::ios::binary);
 	if (!disk_) {
 		// вызвать деструктор
@@ -30,7 +34,7 @@ inline void Fat32::diskOpener() {
 	std::cout << "file is open!\n";
 }
 
-inline void Fat32::readBootSector() {
+ void Fat32::readBootSector() {
 
 	disk_.read(reinterpret_cast<char*>(&bs_), sizeof(BootSector));             // reinterpret_cast<char*>(&bs) преобразует указатель на структуру bs в указатель на массив байтов, то есть на char*. ѕочему именно char? ѕотому что в C++ char всегда представл€ет собой 1 байт данных.
 	if (!disk_) {                                                              // ѕосле этого ты получаешь указатель на первый байт структуры BootSector, и таким образом можешь записать в эту структуру данные, прочитанные из файла.
@@ -49,7 +53,7 @@ inline void Fat32::readBootSector() {
 	fatTable_ = readFAT(bs_);
 }
 
-inline std::vector<uint32_t> Fat32::readFAT(const BootSector& bs) {
+ std::vector<uint32_t> Fat32::readFAT(const BootSector& bs) {
 	uint32_t fatSize = bs.sectorsPerFAT32 * bs.bytesPerSector;
 	std::vector<uint32_t> fatTable(fatSize / sizeof(uint32_t));
 
@@ -63,7 +67,7 @@ inline std::vector<uint32_t> Fat32::readFAT(const BootSector& bs) {
 	return fatTable;
 }
 
-inline void Fat32::findClusterCount(const BootSector& bs) {
+ void Fat32::findClusterCount(const BootSector& bs) {
 	uint32_t totalSectors = bs.totalSectors32;
 	uint32_t fatSectors = bs.sectorsPerFAT32 * bs.numFATs;
 	uint32_t dataSectors = totalSectors - (bs.reservedSectors + fatSectors);
@@ -72,11 +76,11 @@ inline void Fat32::findClusterCount(const BootSector& bs) {
 	std::cout << "Total clusters: " << totalClusters << "\n";
 }
 
-inline bool Fat32::isLFNEntry(const DirEntry& entry) {
+ bool Fat32::isLFNEntry(const DirEntry& entry) {
 	return (entry.attr & 0x0F) == 0x0F;
 }
 
-inline std::string Fat32::decodeLFN(const std::vector<LFNEntry>& entries) {
+ std::string Fat32::decodeLFN(const std::vector<LFNEntry>& entries) {
 	std::u16string name;
 	for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
 		const LFNEntry& e = *it;
@@ -90,7 +94,7 @@ inline std::string Fat32::decodeLFN(const std::vector<LFNEntry>& entries) {
 	return converter.to_bytes(name);
 }
 
-inline std::string Fat32::decodeShortName(const uint8_t name[11]) {
+ std::string Fat32::decodeShortName(const uint8_t name[11]) {
 	std::string shortName;
 	for (int i = 0; i < 8 && name[i] != ' '; ++i)
 		shortName += static_cast<char>(name[i]);
@@ -99,7 +103,7 @@ inline std::string Fat32::decodeShortName(const uint8_t name[11]) {
 	return shortName;
 }
 
-inline void Fat32::readDirectory(const BootSector& bs, const std::vector<uint32_t>& fatTable, uint32_t cluster, const std::string& path) { //кластер, с которого начинаетс€ чтение (по умолчанию 0)
+ void Fat32::readDirectory(const BootSector& bs, const std::vector<uint32_t>& fatTable, uint32_t cluster, const std::string& path) { //кластер, с которого начинаетс€ чтение (по умолчанию 0)
 
 	uint32_t dataBegin = bs.reservedSectors + (bs.numFATs * bs.sectorsPerFAT32);                        // определ€ет начало данных на диске, который включает все зарезервированные сектора и сектора, зан€тые таблицами FAT. ≈сли cluster равен 0 (по умолчанию), это означает, что нужно начать с корневого кластера, указанный в rootCluster.
 	if (cluster == 0) {
@@ -167,7 +171,7 @@ inline void Fat32::readDirectory(const BootSector& bs, const std::vector<uint32_
 	}
 }
 
-inline void Fat32::findBadClusters(const std::vector<uint32_t>& fatTable) {
+ void Fat32::findBadClusters(const std::vector<uint32_t>& fatTable) {
 	for (size_t i = 0; i < fatTable.size(); ++i) {
 		if (fatTable[i] == 0x0FFFFFF7) {
 			bad_clusters_.push_back(i);
@@ -176,7 +180,7 @@ inline void Fat32::findBadClusters(const std::vector<uint32_t>& fatTable) {
 	}
 }
 
-inline void Fat32::updateFatHelperTable() {
+ void Fat32::updateFatHelperTable() {
 	fatHelperTable_.resize(fatTable_.size());	// переместить вызов кудато
 
 	for (const auto& file : files_) {                       // берем ‘ј…л 
@@ -244,7 +248,7 @@ inline void Fat32::updateFatHelperTable() {
 	}
 }
 
-inline void Fat32::findLostFiles(const std::vector<uint32_t>& fatTable) {
+ void Fat32::findLostFiles(const std::vector<uint32_t>& fatTable) {
 
 	for (size_t cluster = 0; cluster < fatTable.size(); ++cluster) {
 		if (fatTable[cluster] == 0x0FFFFFF7) {														// bad clusters
@@ -301,7 +305,60 @@ inline void Fat32::findLostFiles(const std::vector<uint32_t>& fatTable) {
 	}
 }
 
-inline void Fat32::printFatTable(const std::vector<uint32_t>& fatTable) {
+
+ void Fat32::FixCyclicFile(const File& file, const std::vector<uint32_t>& fatTable, std::vector<uint32_t>& curedFatTable, uint32_t bytesPerSector, uint32_t sectorsPerCluster) {
+	 uint32_t clusterSize = bytesPerSector * sectorsPerCluster;
+	 uint32_t requiredClusters = (file.fileSize + clusterSize - 1) / clusterSize;
+
+	 uint32_t current = file.firstClaster;
+	 std::unordered_set<uint32_t> visited;
+	 std::vector<uint32_t> chain;
+
+	 // —обираем цепочку, пока не наткнЄмс€ на цикл или конец FAT
+	 while (current < fatTable.size() && !visited.count(current) && fatTable[current] != 0x0FFFFFF7 && fatTable[current] != 0x00000000) {
+		 chain.push_back(current);
+		 visited.insert(current);
+
+		 if (fatTable[current] >= fatTable.size()) {
+			 break;  // ¬ыход за пределы таблицы Ч прекращаем цикл
+		 }
+
+		 // ѕолучаем следующий кластер
+		 current = fatTable[current];
+
+		 // ѕровер€ем, что текущий кластер не указывает на EOF (если метка EOF уже установлена)
+		 if (current == 0x0FFFFFFF) {
+			 break;
+		 }
+	 }
+
+	 // ≈сли мы зациклились, обработаем только нужное количество кластеров
+	 for (size_t i = 0; i < chain.size(); ++i) {
+		 if (i + 1 < requiredClusters && i + 1 < chain.size()) {
+			 curedFatTable[chain[i]] = chain[i + 1];
+		 }
+		 else if (i < requiredClusters) {
+			 curedFatTable[chain[i]] = 0x0FFFFFFF; // EOF
+		 }
+		 else {
+			 curedFatTable[chain[i]] = 0x00000000; // ќбрезаем лишнее
+		 }
+	 }
+
+	 // —охран€ем результат
+	 curedFiles_.push_back(file);
+ }
+
+ void Fat32::HealCyclicFiles(std::vector<File>& cyclicFiles, const std::vector<uint32_t>& fatTable, std::vector<uint32_t>& curedFatTable, const BootSector& bs) {
+	 for (auto& file : cyclicFiles) {
+		 FixCyclicFile(file, fatTable, curedFatTable, bs.bytesPerSector, bs.sectorsPerCluster);
+	 }
+	 std::cout << "Cyclic files have been healed." << std::endl;
+ }
+
+
+ // print funct
+ void Fat32::printFatTable(const std::vector<uint32_t>& fatTable) {
 
 	for (size_t i = 0; i < 50 && i < fatTable.size(); ++i) {
 		if (fatTable[i] == 0x0FFFFFF7 || fatTable[i] == 0x0FFFFFF8) {
@@ -320,21 +377,21 @@ inline void Fat32::printFatTable(const std::vector<uint32_t>& fatTable) {
 	}
 }
 
-inline void Fat32::printFiles(const std::vector<File>& files) {
+ void Fat32::printFiles(const std::vector<File>& files) {
 
 	for (auto file : files) {
 		std::cout << file;
 	}
 }
 
-inline void Fat32::printBrokenFiles() {
+ void Fat32::printBrokenFiles() {
 	for (const auto& broken : brokenFiles_) {
 		std::cout << "Broken file: " << broken.filename
 			<< " ---   " << broken.errorMessage << "\n";
 	}
 }
 
-inline void Fat32::printLostClusters(const std::vector<uint32_t>& fatTable) {
+ void Fat32::printLostClusters(const std::vector<uint32_t>& fatTable) {
 	// ¬ыводим потер€нные файлы
 	for (const auto& lostFile : lostFiles_) {
 		uint32_t currentCluster = lostFile.firstClaster;
@@ -350,22 +407,25 @@ inline void Fat32::printLostClusters(const std::vector<uint32_t>& fatTable) {
 	}
 }
 
-inline const std::vector<uint32_t>& Fat32::getFATTable() const {
+
+
+ // getters
+ const std::vector<uint32_t>& Fat32::getFATTable() const {
 	return fatTable_;
 }
 
-inline const std::vector<File>& Fat32::getLostFiles() const {
+ const std::vector<File>& Fat32::getLostFiles() const {
 	return lostFiles_;
 }
 
-inline const std::vector<File>& Fat32::getFiles() const {
+ const std::vector<File>& Fat32::getFiles() const {
 	return files_;
 }
 
-inline const BootSector& Fat32::getBootSector() const {
+ const BootSector& Fat32::getBootSector() const {
 	return bs_;
 }
 
-inline const std::vector<BrokenFileInfo>& Fat32::getBrokenFiles() const {
+ const std::vector<BrokenFileInfo>& Fat32::getBrokenFiles() const {
 	return brokenFiles_;
 }

@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #define private public  // Даем доступ к приватным членам
-#include "../fat32-checker/fat32-checker.cpp"
+#include "../fat32-checker/main.cpp"
+#include"../fat32-checker/fat32.cpp"
 #undef private
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -15,6 +16,7 @@ namespace UnitTest
 
         if (!outFile.is_open()) {
             std::cerr << "Ошибка при открытии файла для записи." << std::endl;
+
             return;
         }
 
@@ -74,6 +76,8 @@ namespace UnitTest
         TEST_METHOD_INITIALIZE(SetUp)
         {
             fs = new Fat32("42.img", true);  // Инициализация объекта Fat32
+            fs->bs_.bytesPerSector = 521;
+            fs->bs_.sectorsPerCluster = 32;
         }
 
         // Очистка после теста
@@ -86,7 +90,7 @@ namespace UnitTest
         TEST_METHOD(UpdateFatHelperTableWorks)
         {
             // Подставим тестовые значения в fatTable_
-            fs->fatTable_ = {
+            fs->fatTable_ = {    // индексы
                 0, 0, 0, 0,      // 0–3
                 7, 6, 3, 9,      // 4–7
                 5, 8, 4, 0,      // 8–11
@@ -104,10 +108,13 @@ namespace UnitTest
             };
 
             fs->files_ = {
-                File{ "A.txt", "A.txt", "", 0, 10 },
-                File{ "C.doc", "C.doc", "", 0, 19 },
-                File{ "D.bin", "D.bin", "", 0, 24 }
+                File{ "A.txt", "A.txt", "", 0, 10, },
+                File{ "C.doc", "C.doc", "", 0, 19, },
+                File{ "D.bin", "D.bin", "", 0, 24, 81920}
             };
+
+            fs->curedFatTable_ = fs->fatTable_;
+            fs->curedFiles_ = fs->files_;
 
             // Вызовем метод, который хотим протестировать
             fs->updateFatHelperTable();
@@ -115,6 +122,21 @@ namespace UnitTest
             writeFilesToFile(fs->getFiles(), "output.txt");
             writeBrokenFilesToFile(fs->getBrokenFiles(), "./ooooo.txt");
             writeLostClustersToFile(fs->getFATTable(), fs->getLostFiles());
+
+
+            fs->HealCyclicFiles(fs->cyclicFiles_, fs->fatTable_, fs->curedFatTable_, fs->bs_);
+
+            if (fs->curedFatTable_.size() > fs->fatTable_.size()) {
+                fs->fatTable_.resize(fs->curedFatTable_.size(), 0);  // Если curedFatTable_ больше, увеличиваем fatTable_ с нулями
+            }
+            else if (fs->fatTable_.size() > fs->curedFatTable_.size()) {
+                fs->curedFatTable_.resize(fs->fatTable_.size(), 0);  // Если fatTable_ больше, увеличиваем curedFatTable_ с нулями
+            }
+            fs->fatTable_ = fs->curedFatTable_;  // Теперь они одинаковые по размеру и можно присваивать
+
+            fs->fatHelperTable_.clear();
+            fs->updateFatHelperTable();
+            writeBrokenFilesToFile(fs->getBrokenFiles(), "./ooooo.txt");
             // Проверка: можно добавить дополнительные проверки с ASSERT или EXPECT
             // Например:
             // Assert::IsTrue(fs->fatHelperTable_.size() > 0d);  // Проверка, что таблица не пуста
