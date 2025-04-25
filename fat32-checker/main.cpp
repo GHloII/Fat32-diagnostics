@@ -1,6 +1,5 @@
 ﻿#include <iostream>
 
-#include "structs.h"
 #include "Fat32.h"
 
 
@@ -62,31 +61,3 @@ int main() {
 
 // Метод для преобразования в строку
 
- std::string File::toString() const {
-	std::ostringstream oss; // (поток вывода в строку)
-	oss << *this;  // Используем перегруженный оператор
-	return oss.str();
-}
-
- std::string File::formatFatDateTime(uint16_t date, uint16_t time) {
-	// Разбор даты 
-	int year = 1980 + ((date >> 9) & 0x7F);
-	int month = (date >> 5) & 0x0F;
-	int day = date & 0x1F;
-
-	// Разбор времени 
-	int hour = (time >> 11) & 0x1F;
-	int minute = (time >> 5) & 0x3F;
-	int second = (time & 0x1F) * 2;
-
-	std::ostringstream oss;
-	oss << std::setfill('0')
-		<< std::setw(4) << year << "-"
-		<< std::setw(2) << month << "-"
-		<< std::setw(2) << day << " "
-		<< std::setw(2) << hour << ":"
-		<< std::setw(2) << minute << ":"
-		<< std::setw(2) << second;
-
-	return oss.str();
-}

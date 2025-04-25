@@ -76,8 +76,6 @@ private:
 public:
 
 
-	
-
 	void printFatTable(const std::vector<uint32_t>& fatTable);
 
 	void printFiles(const std::vector<File>& files);
