@@ -51,7 +51,7 @@ private:
 
 	void findLostFiles(const std::vector<uint32_t>& fatTable);
 
-	void FixCyclicFile(const File& file, const std::vector<uint32_t>& fatTable, std::vector<uint32_t>& curedFatTable, uint32_t bytesPerSector, uint32_t sectorsPerCluster);
+
 
 	BootSector bs_;
 	std::vector<uint32_t> fatTable_;                                    // Вектор с таблицей FAT
@@ -76,8 +76,7 @@ private:
 public:
 
 
-	void HealCyclicFiles(std::vector<File>& cyclicFiles, const std::vector<uint32_t>& fatTable, std::vector<uint32_t>& curedFatTable, const BootSector& bs);
-
+	
 
 	void printFatTable(const std::vector<uint32_t>& fatTable);
 
