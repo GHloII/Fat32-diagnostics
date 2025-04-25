@@ -1,9 +1,9 @@
 #include "Fat32.h"
 
- Fat32::Fat32(const std::string& filename, bool skipInit)
+ Fat32::Fat32(const std::string& filename)
 	: filename_(filename)
 {
-	if (!skipInit) {
+
 		diskOpener();
 		readBootSector();
 		readDirectory(bs_, fatTable_);
@@ -12,8 +12,11 @@
 		findLostFiles(fatTable_);
 
 		printBrokenFiles();
-	}
+
 }
+
+ Fat32::Fat32(BootSector bs, std::vector<uint32_t> fatTable, std::vector<File> files)
+	 : bs_(bs), fatTable_(fatTable), files_(files) {}
 
  Fat32::~Fat32() {
 	if (disk_.is_open()) {

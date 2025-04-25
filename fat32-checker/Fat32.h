@@ -18,8 +18,9 @@ class Fat32 {
 public:
 
 
-	Fat32(const std::string& filename, bool skipInit = false);
+	Fat32(const std::string& filename);
 
+	Fat32(BootSector bs, std::vector<uint32_t> fatTable, std::vector<File> files);
 	~Fat32();
 
 private:
@@ -57,9 +58,6 @@ private:
 	std::vector<uint32_t> fatTable_;                                    // Вектор с таблицей FAT
 	std::vector<HelpTable> fatHelperTable_;                             // Вектор с таблицей 
 	std::vector<File> lostFiles_;                                       // Вектор для хранения потерянных файлов
-
-	std::vector<uint32_t> curedFatTable_;								// восстановленная FAT
-	std::vector<File> curedFiles_;										// восстановленные файлы
 
 	const std::string filename_;                                        // Диск с FAT32
 	std::ifstream disk_;

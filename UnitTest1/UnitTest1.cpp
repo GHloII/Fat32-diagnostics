@@ -75,6 +75,13 @@ namespace UnitTest
         TEST_METHOD_INITIALIZE(SetUp)
         {
             fs = new Fat32("42.img", true);  // Инициализация объекта Fat32
+
+
+
+
+
+
+
         }
 
         // Очистка после теста
@@ -116,9 +123,7 @@ namespace UnitTest
             writeFilesToFile(fs->getFiles(), "output.txt");
             writeBrokenFilesToFile(fs->getBrokenFiles(), "./ooooo.txt");
             writeLostClustersToFile(fs->getFATTable(), fs->getLostFiles());
-            // Проверка: можно добавить дополнительные проверки с ASSERT или EXPECT
-            // Например:
-            // Assert::IsTrue(fs->fatHelperTable_.size() > 0d);  // Проверка, что таблица не пуста
+
         }
     };
 }
