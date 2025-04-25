@@ -92,5 +92,15 @@ public:
 	const BootSector& getBootSector() const;
 
 	const std::vector<BrokenFileInfo>& getBrokenFiles() const;
+
+	// Зацикленные файлы
+	const std::vector<File>& getCyclicFiles() const;
+
+	// Файлы с пересечениями
+	const std::map<File*, std::vector<uint32_t>>& getIntersectingClusters() const;
+
+	// Файлы без EOF
+	const std::vector<File>& getNoEOFfiles() const;
+
 };
 

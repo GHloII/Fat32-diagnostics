@@ -372,3 +372,21 @@
  const std::vector<BrokenFileInfo>& Fat32::getBrokenFiles() const {
 	return brokenFiles_;
 }
+
+ // Зацикленные файлы
+
+ const std::vector<File>& Fat32::getCyclicFiles() const {
+	 return cyclicFiles_;
+ }
+
+ // Файлы с пересечениями
+
+ const std::map<File*, std::vector<uint32_t>>& Fat32::getIntersectingClusters() const {
+	 return intersectingClusters_;
+ }
+
+ // Файлы без EOF
+
+ const std::vector<File>& Fat32::getNoEOFfiles() const {
+	 return noEOFfiles_;
+ }
