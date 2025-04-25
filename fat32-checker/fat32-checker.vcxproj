@@ -139,7 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="fat32-checker.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Fat32.cpp" />
   </ItemGroup>
   <ItemGroup>

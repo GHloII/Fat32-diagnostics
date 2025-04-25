@@ -62,13 +62,13 @@ int main() {
 
 // Метод для преобразования в строку
 
-inline std::string File::toString() const {
+ std::string File::toString() const {
 	std::ostringstream oss; // (поток вывода в строку)
 	oss << *this;  // Используем перегруженный оператор
 	return oss.str();
 }
 
-inline std::string File::formatFatDateTime(uint16_t date, uint16_t time) {
+ std::string File::formatFatDateTime(uint16_t date, uint16_t time) {
 	// Разбор даты 
 	int year = 1980 + ((date >> 9) & 0x7F);
 	int month = (date >> 5) & 0x0F;

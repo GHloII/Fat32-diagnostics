@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #define private public  // Даем доступ к приватным членам
-#include "../fat32-checker/fat32-checker.cpp"
+#include "../fat32-checker/main.cpp"
 #undef private
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
