@@ -2,6 +2,7 @@
 #include "CppUnitTest.h"
 #define private public  // Даем доступ к приватным членам
 #include "../fat32-checker/main.cpp"
+#include"../fat32-checker/fat32.cpp"
 #undef private
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
